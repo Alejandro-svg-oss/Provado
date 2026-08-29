@@ -11,6 +11,27 @@ Usar el archivo `apify.google-search.input.json` como base de input para cada co
 
 Regla: antes de ejecutar, reemplazar `queries` con el texto del problema/solucion enviado por el usuario.
 
+## Action de Convex ya incluida en el repo
+
+Archivo: `convex/apifySearch.ts`
+
+Exporta:
+
+- `scrapePlayersFromApify`
+
+Argumentos:
+
+- `query: string` (obligatorio)
+- `maxPlayers?: number` (opcional, default 5)
+
+Retorna:
+
+- `players[]` deduplicados por dominio con:
+  - `name`
+  - `whereItWorks`
+  - `sourceUrl`
+  - `confidence` (`confirmado` o `probable`)
+
 ## Objetivo del output
 
 Extraer de `organicResults`:
