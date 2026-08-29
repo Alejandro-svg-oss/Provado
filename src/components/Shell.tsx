@@ -14,6 +14,14 @@ export function Shell({ children }: { children: ReactNode }) {
 
         <nav className={styles.nav} aria-label="Navegación principal">
           <NavLink
+            to="/buscar"
+            className={({ isActive }) =>
+              isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink
+            }
+          >
+            Buscar
+          </NavLink>
+          <NavLink
             to="/historial"
             className={({ isActive }) =>
               isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink

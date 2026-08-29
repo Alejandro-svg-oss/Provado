@@ -108,8 +108,34 @@
   opacity: 0.6;
 }
 
+.error {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+.authGate {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.authGateText {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
 @media (max-width: 640px) {
   .submit {
     width: 100%;
+  }
+
+  .authGate {
+    align-items: stretch;
   }
 }

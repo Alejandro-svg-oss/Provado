@@ -1,24 +1,37 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMutation } from "convex/react";
+import { useUser } from "@clerk/clerk-react";
+import { api } from "../../convex/_generated/api";
 import { Shell } from "../components/Shell";
 import styles from "./InputPage.module.css";
 
 export function InputPage() {
   const [problem, setProblem] = useState("");
   const [solution, setSolution] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const createValidation = useMutation(api.validations.create);
+  const { isSignedIn, isLoaded } = useUser();
 
-  const canSubmit = problem.trim().length > 0 && solution.trim().length > 0;
+  const canSubmit =
+    isSignedIn === true && problem.trim().length > 0 && solution.trim().length > 0 && !submitting;
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!canSubmit) return;
 
-    // TODO(apify): al enviar, se crea una validación en Convex (mutation)
-    // y el pipeline de scraping (Apify) empieza a poblar `scrapedSources`.
-    // TODO(deepseek): la action de Convex procesa esas fuentes y decide
-    // confirmado/probable por cada player.
-    navigate("/buscando", { state: { problem, solution } });
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const validationId = await createValidation({ problem, solution });
+      navigate("/buscando", { state: { validationId } });
+    } catch (error) {
+      console.error("No se pudo crear la validación:", error);
+      setErrorMessage("No pudimos iniciar la búsqueda. Intenta de nuevo.");
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -33,41 +46,58 @@ export function InputPage() {
             y qué es una suposición.
           </p>
 
-          <form className={styles.form} onSubmit={handleSubmit}>
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="problem">
-                Problema
-              </label>
-              <textarea
-                id="problem"
-                className={styles.textarea}
-                placeholder="¿Qué dolor concreto tiene tu usuario?"
-                value={problem}
-                onChange={(event) => setProblem(event.target.value)}
-                rows={3}
-                required
-              />
+          {isLoaded && !isSignedIn ? (
+            <div className={styles.authGate}>
+              <p className={styles.authGateText}>
+                Necesitas una cuenta para buscar evidencia y guardar tus validaciones.
+              </p>
+              <button
+                type="button"
+                className={styles.submit}
+                onClick={() => navigate("/entrar")}
+              >
+                Entrar para buscar evidencia
+              </button>
             </div>
+          ) : (
+            <form className={styles.form} onSubmit={(e) => void handleSubmit(e)}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="problem">
+                  Problema
+                </label>
+                <textarea
+                  id="problem"
+                  className={styles.textarea}
+                  placeholder="¿Qué dolor concreto tiene tu usuario?"
+                  value={problem}
+                  onChange={(event) => setProblem(event.target.value)}
+                  rows={3}
+                  required
+                />
+              </div>
 
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="solution">
-                Solución
-              </label>
-              <textarea
-                id="solution"
-                className={styles.textarea}
-                placeholder="¿Cómo lo resuelves?"
-                value={solution}
-                onChange={(event) => setSolution(event.target.value)}
-                rows={3}
-                required
-              />
-            </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="solution">
+                  Solución
+                </label>
+                <textarea
+                  id="solution"
+                  className={styles.textarea}
+                  placeholder="¿Cómo lo resuelves?"
+                  value={solution}
+                  onChange={(event) => setSolution(event.target.value)}
+                  rows={3}
+                  required
+                />
+              </div>
 
-            <button type="submit" className={styles.submit} disabled={!canSubmit}>
-              Buscar evidencia
-            </button>
-          </form>
+              {errorMessage && <p className={styles.error}>{errorMessage}</p>}
+
+              <button type="submit" className={styles.submit} disabled={!canSubmit}>
+                {submitting ? "Buscando…" : "Buscar evidencia"}
+              </button>
+            </form>
+          )}
         </div>
       </section>
     </Shell>

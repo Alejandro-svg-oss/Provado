@@ -45,7 +45,7 @@ type SerpPage = {
   organicResults?: OrganicResult[];
 };
 
-type PlayerCandidate = {
+export type PlayerCandidate = {
   name: string;
   whereItWorks: string;
   sourceUrl?: string;
@@ -79,67 +79,77 @@ function inferWhereItWorks(result: OrganicResult): string {
   return text.length > 220 ? `${text.slice(0, 217)}...` : text;
 }
 
+export async function fetchPlayerCandidatesFromApify(
+  query: string,
+  maxPlayers = 5,
+): Promise<{ players: PlayerCandidate[]; organicResultsScanned: number }> {
+  const token = process.env.APIFY_TOKEN;
+  if (!token) {
+    throw new Error("Missing APIFY_TOKEN environment variable.");
+  }
+
+  const actorId = process.env.APIFY_ACTOR_ID ?? DEFAULT_ACTOR_ID;
+  const cappedMaxPlayers = Math.max(1, Math.min(maxPlayers, 10));
+
+  const input = {
+    ...APIFY_BASE_INPUT,
+    queries: query,
+  };
+
+  const endpoint = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${encodeURIComponent(
+    token,
+  )}&clean=true&format=json`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Apify request failed (${response.status}): ${body}`);
+  }
+
+  const pages = (await response.json()) as SerpPage[];
+  const organic = pages.flatMap((page) => page.organicResults ?? []);
+
+  const dedupedByDomain = new Map<string, PlayerCandidate>();
+  for (const result of organic) {
+    const hasSource = isHttpUrl(result.url);
+    const domainKey = isHttpUrl(result.url)
+      ? normalizedDomain(result.url)
+      : `unknown-${dedupedByDomain.size + 1}`;
+
+    if (dedupedByDomain.has(domainKey)) continue;
+
+    dedupedByDomain.set(domainKey, {
+      name: inferName(result),
+      whereItWorks: inferWhereItWorks(result),
+      sourceUrl: hasSource ? result.url : undefined,
+      confidence: hasSource ? "confirmado" : "probable",
+    });
+
+    if (dedupedByDomain.size >= cappedMaxPlayers) break;
+  }
+
+  return {
+    players: Array.from(dedupedByDomain.values()),
+    organicResultsScanned: organic.length,
+  };
+}
+
 export const scrapePlayersFromApify = action({
   args: {
     query: v.string(),
     maxPlayers: v.optional(v.number()),
   },
   handler: async (_ctx, args) => {
-    const token = process.env.APIFY_TOKEN;
-    if (!token) {
-      throw new Error("Missing APIFY_TOKEN environment variable.");
-    }
-
-    const actorId = process.env.APIFY_ACTOR_ID ?? DEFAULT_ACTOR_ID;
-    const maxPlayers = Math.max(1, Math.min(args.maxPlayers ?? 5, 10));
-
-    const input = {
-      ...APIFY_BASE_INPUT,
-      queries: args.query,
-    };
-
-    const endpoint = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${encodeURIComponent(
-      token,
-    )}&clean=true&format=json`;
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(input),
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Apify request failed (${response.status}): ${body}`);
-    }
-
-    const pages = (await response.json()) as SerpPage[];
-    const organic = pages.flatMap((page) => page.organicResults ?? []);
-
-    const dedupedByDomain = new Map<string, PlayerCandidate>();
-    for (const result of organic) {
-      const hasSource = isHttpUrl(result.url);
-      const domainKey = hasSource
-        ? normalizedDomain(result.url)
-        : `unknown-${dedupedByDomain.size + 1}`;
-
-      if (dedupedByDomain.has(domainKey)) continue;
-
-      dedupedByDomain.set(domainKey, {
-        name: inferName(result),
-        whereItWorks: inferWhereItWorks(result),
-        sourceUrl: hasSource ? result.url : undefined,
-        confidence: hasSource ? "confirmado" : "probable",
-      });
-
-      if (dedupedByDomain.size >= maxPlayers) break;
-    }
-
+    const result = await fetchPlayerCandidatesFromApify(args.query, args.maxPlayers ?? 5);
     return {
       query: args.query,
-      actorId,
-      players: Array.from(dedupedByDomain.values()),
-      organicResultsScanned: organic.length,
+      actorId: process.env.APIFY_ACTOR_ID ?? DEFAULT_ACTOR_ID,
+      ...result,
     };
   },
 });

@@ -1,44 +1,52 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { Shell } from "../components/Shell";
 import styles from "./SearchingPage.module.css";
 
-const STAGES = [
-  "Rastreando fuentes…",
-  "Extrayendo players…",
-  "Evaluando confianza…",
-];
+const STAGES = ["Rastreando fuentes…", "Extrayendo players…", "Evaluando confianza…"];
 
-// Duración simulada por etapa. En producción, el avance real vendría de leer
-// el estado de la validación en Convex (ver validations.ts: status "searching").
-const STAGE_DURATION_MS = 900;
+// Ciclo cosmético entre etapas mientras esperamos el resultado real de Convex
+// (ver validations.ts: status pasa de "searching" a "done" o "error").
+const STAGE_CYCLE_MS = 1400;
 
 export function SearchingPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [stageIndex, setStageIndex] = useState(0);
 
-  const state = location.state as { problem?: string; solution?: string } | null;
+  const state = location.state as { validationId?: Id<"validations"> } | null;
+  const validationId = state?.validationId;
+
+  const validation = useQuery(
+    api.validations.get,
+    validationId ? { id: validationId } : "skip",
+  );
 
   useEffect(() => {
-    if (!state?.problem || !state?.solution) {
+    if (!validationId) {
       navigate("/", { replace: true });
     }
-  }, [state, navigate]);
+  }, [validationId, navigate]);
 
   useEffect(() => {
-    if (stageIndex >= STAGES.length - 1) {
-      const timeout = setTimeout(() => {
-        navigate("/resultados", { state, replace: true });
-      }, STAGE_DURATION_MS);
-      return () => clearTimeout(timeout);
-    }
+    const interval = setInterval(() => {
+      setStageIndex((current) => (current + 1) % STAGES.length);
+    }, STAGE_CYCLE_MS);
+    return () => clearInterval(interval);
+  }, []);
 
-    const timeout = setTimeout(() => {
-      setStageIndex((current) => current + 1);
-    }, STAGE_DURATION_MS);
-    return () => clearTimeout(timeout);
-  }, [stageIndex, navigate, state]);
+  useEffect(() => {
+    if (!validation) return;
+
+    if (validation.status === "done") {
+      navigate("/resultados", { state: { validationId }, replace: true });
+    } else if (validation.status === "error") {
+      navigate("/", { replace: true, state: { searchError: true } });
+    }
+  }, [validation, navigate, validationId]);
 
   return (
     <Shell>

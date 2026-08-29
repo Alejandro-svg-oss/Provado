@@ -1,8 +1,8 @@
-import type { Player } from "../mocks/types";
+import type { Doc } from "../../convex/_generated/dataModel";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import styles from "./PlayerCard.module.css";
 
-export function PlayerCard({ player }: { player: Player }) {
+export function PlayerCard({ player }: { player: Doc<"players"> }) {
   const isConfirmed = player.confidence === "confirmado";
 
   return (

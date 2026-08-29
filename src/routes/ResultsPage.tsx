@@ -1,23 +1,73 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { Shell } from "../components/Shell";
 import { PlayerCard } from "../components/PlayerCard";
 import { VoiceButton } from "../components/VoiceButton";
-import { MOCK_GAP, MOCK_PLAYERS } from "../mocks/results";
 import styles from "./ResultsPage.module.css";
 
 export function ResultsPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const state = location.state as { problem?: string; solution?: string } | null;
-  const problem = state?.problem ?? "Los equipos remotos pierden contexto entre reuniones y docs";
-  const solution =
-    state?.solution ?? "Un asistente que resume decisiones y las liga a la tarea correspondiente";
+  const state = location.state as { validationId?: Id<"validations"> } | null;
+  const validationId = state?.validationId;
 
-  const confirmedCount = MOCK_PLAYERS.filter((p) => p.confidence === "confirmado").length;
-  const probableCount = MOCK_PLAYERS.length - confirmedCount;
+  const validation = useQuery(
+    api.validations.get,
+    validationId ? { id: validationId } : "skip",
+  );
 
-  const summaryForVoice = `${MOCK_PLAYERS.length} players encontrados. ${confirmedCount} confirmados, ${probableCount} probables. Hueco: ${MOCK_GAP}`;
+  if (!validationId) {
+    return (
+      <Shell>
+        <section className={styles.wrap}>
+          <p className={styles.eyebrow}>Resultados</p>
+          <h1 className={styles.title}>No hay una búsqueda para mostrar</h1>
+          <p className={styles.solution}>Mete un problema y una solución para empezar.</p>
+          <div className={styles.footer}>
+            <button type="button" className={styles.newSearch} onClick={() => navigate("/")}>
+              Nueva búsqueda
+            </button>
+          </div>
+        </section>
+      </Shell>
+    );
+  }
+
+  if (validation === undefined) {
+    return (
+      <Shell>
+        <section className={styles.wrap}>
+          <p className={`${styles.eyebrow} mono`}>Cargando resultados…</p>
+        </section>
+      </Shell>
+    );
+  }
+
+  if (validation === null) {
+    return (
+      <Shell>
+        <section className={styles.wrap}>
+          <p className={styles.eyebrow}>Resultados</p>
+          <h1 className={styles.title}>No encontramos esta búsqueda</h1>
+          <p className={styles.solution}>Puede que haya sido de otra cuenta o ya no exista.</p>
+          <div className={styles.footer}>
+            <button type="button" className={styles.newSearch} onClick={() => navigate("/")}>
+              Nueva búsqueda
+            </button>
+          </div>
+        </section>
+      </Shell>
+    );
+  }
+
+  const { problem, solution, gap, players } = validation;
+  const confirmedCount = players.filter((p) => p.confidence === "confirmado").length;
+  const probableCount = players.length - confirmedCount;
+
+  const summaryForVoice = `${players.length} players encontrados. ${confirmedCount} confirmados, ${probableCount} probables. Hueco: ${gap ?? ""}`;
 
   return (
     <Shell>
@@ -37,16 +87,24 @@ export function ResultsPage() {
           </div>
         </div>
 
-        <div className={styles.list}>
-          {MOCK_PLAYERS.map((player) => (
-            <PlayerCard key={player.name} player={player} />
-          ))}
-        </div>
+        {players.length === 0 ? (
+          <p className={styles.solution}>
+            No encontramos players para esta búsqueda todavía.
+          </p>
+        ) : (
+          <div className={styles.list}>
+            {players.map((player) => (
+              <PlayerCard key={player._id} player={player} />
+            ))}
+          </div>
+        )}
 
-        <div className={styles.gap}>
-          <p className={styles.gapLabel}>Hueco concreto</p>
-          <p className={`${styles.gapText} mono`}>{MOCK_GAP}</p>
-        </div>
+        {gap && (
+          <div className={styles.gap}>
+            <p className={styles.gapLabel}>Hueco concreto</p>
+            <p className={`${styles.gapText} mono`}>{gap}</p>
+          </div>
+        )}
 
         <div className={styles.footer}>
           <VoiceButton summary={summaryForVoice} />

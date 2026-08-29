@@ -1,24 +1,32 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Shell } from "../components/Shell";
-import { formatRelativeDate, MOCK_HISTORY } from "../mocks/history";
 import styles from "./HistoryPage.module.css";
+
+function formatRelativeDate(timestamp: number): string {
+  const days = Math.round((Date.now() - timestamp) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "Hoy";
+  if (days === 1) return "Hace 1 día";
+  return `Hace ${days} días`;
+}
 
 export function HistoryPage() {
   const [semanticQuery, setSemanticQuery] = useState("");
   const navigate = useNavigate();
 
+  const validations = useQuery(api.validations.list);
   // TODO(semantic): vector search de Convex sobre el historial del usuario.
   // Opcional: si no se implementa, el historial completo sigue siendo
-  // navegable con la lista de abajo.
-  const filtered = semanticQuery.trim()
-    ? MOCK_HISTORY.filter((item) =>
-        `${item.problem} ${item.solution}`
-          .toLowerCase()
-          .includes(semanticQuery.trim().toLowerCase()),
-      )
-    : MOCK_HISTORY;
+  // navegable con la lista de abajo (filtro de texto simple).
+  const searchResults = useQuery(
+    api.search.searchHistory,
+    semanticQuery.trim() ? { queryText: semanticQuery } : "skip",
+  );
+
+  const filtered = semanticQuery.trim() ? (searchResults ?? []) : (validations ?? []);
 
   return (
     <Shell>
@@ -41,8 +49,14 @@ export function HistoryPage() {
             <span className={`${styles.searchBadge} mono`}>Búsqueda semántica próximamente</span>
           </div>
 
-          {filtered.length === 0 ? (
-            <p className={styles.empty}>No encontramos validaciones que coincidan con esa búsqueda.</p>
+          {validations === undefined ? (
+            <p className={styles.empty}>Cargando…</p>
+          ) : filtered.length === 0 ? (
+            <p className={styles.empty}>
+              {validations.length === 0
+                ? "Mete un problema y una solución para empezar."
+                : "No encontramos validaciones que coincidan con esa búsqueda."}
+            </p>
           ) : (
             <ul className={styles.list}>
               {filtered.map((item) => (
@@ -52,7 +66,7 @@ export function HistoryPage() {
                     className={styles.item}
                     onClick={() =>
                       navigate("/resultados", {
-                        state: { problem: item.problem, solution: item.solution },
+                        state: { validationId: item._id },
                       })
                     }
                   >

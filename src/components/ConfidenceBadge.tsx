@@ -1,5 +1,7 @@
-import type { Confidence } from "../mocks/types";
+import type { Doc } from "../../convex/_generated/dataModel";
 import styles from "./ConfidenceBadge.module.css";
+
+type Confidence = Doc<"players">["confidence"];
 
 export function ConfidenceBadge({ confidence }: { confidence: Confidence }) {
   const isConfirmed = confidence === "confirmado";

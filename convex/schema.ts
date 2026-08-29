@@ -24,12 +24,4 @@ export default defineSchema({
     sourceUrl: v.optional(v.string()),
     confidence: v.union(v.literal("confirmado"), v.literal("probable")),
   }).index("by_validation", ["validationId"]),
-
-  // TODO(apify): otra persona escribe aquí desde un scraper Apify. El front solo lee.
-  scrapedSources: defineTable({
-    validationId: v.id("validations"),
-    url: v.string(),
-    rawContent: v.string(),
-    fetchedAt: v.number(),
-  }).index("by_validation", ["validationId"]),
 });

@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as apifySearch from "../apifySearch.js";
+import type * as deepseek from "../deepseek.js";
+import type * as evidenceSearch from "../evidenceSearch.js";
 import type * as search from "../search.js";
 import type * as validations from "../validations.js";
 
@@ -18,6 +21,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  apifySearch: typeof apifySearch;
+  deepseek: typeof deepseek;
+  evidenceSearch: typeof evidenceSearch;
   search: typeof search;
   validations: typeof validations;
 }>;

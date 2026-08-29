@@ -54,9 +54,19 @@ export function AuthPage() {
 
         <div className={styles.clerkWrap}>
           {mode === "sign-in" ? (
-            <SignIn routing="hash" signUpUrl="/entrar" appearance={appearance} />
+            <SignIn
+              routing="hash"
+              signUpUrl="/entrar"
+              forceRedirectUrl="/buscar"
+              appearance={appearance}
+            />
           ) : (
-            <SignUp routing="hash" signInUrl="/entrar" appearance={appearance} />
+            <SignUp
+              routing="hash"
+              signInUrl="/entrar"
+              forceRedirectUrl="/buscar"
+              appearance={appearance}
+            />
           )}
         </div>
       </section>
