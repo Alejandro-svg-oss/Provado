@@ -21,7 +21,7 @@ export const runEvidenceSearch = internalAction({
       const query = `${validation.problem} ${validation.solution}`;
       const { players: candidates } = await fetchPlayerCandidatesFromApify(query, 8);
 
-      const { players, gap } = await extractPlayersWithDeepSeek(
+      const { players, gap, verdict } = await extractPlayersWithDeepSeek(
         validation.problem,
         validation.solution,
         candidates,
@@ -30,11 +30,16 @@ export const runEvidenceSearch = internalAction({
       await ctx.runMutation(internal.validations.saveResults, {
         validationId,
         gap,
+        verdict,
         players,
       });
     } catch (error) {
       console.error("runEvidenceSearch failed:", error);
-      await ctx.runMutation(internal.validations.markError, { validationId });
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Algo falló al buscar evidencia. Prueba con un problema y solución más específicos.";
+      await ctx.runMutation(internal.validations.markError, { validationId, message });
     }
   },
 });

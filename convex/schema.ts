@@ -13,6 +13,8 @@ export default defineSchema({
       v.literal("error"),
     ),
     gap: v.optional(v.string()),
+    verdict: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
 

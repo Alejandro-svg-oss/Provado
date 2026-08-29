@@ -43,10 +43,31 @@ export function SearchingPage() {
 
     if (validation.status === "done") {
       navigate("/resultados", { state: { validationId }, replace: true });
-    } else if (validation.status === "error") {
-      navigate("/", { replace: true, state: { searchError: true } });
     }
   }, [validation, navigate, validationId]);
+
+  if (validation?.status === "error") {
+    return (
+      <Shell>
+        <section className={styles.wrap}>
+          <div className={styles.card}>
+            <p className={styles.eyebrow}>No se pudo completar la búsqueda</p>
+            <p className={styles.errorText}>
+              {validation.errorMessage ??
+                "Algo falló al buscar evidencia. Prueba con un problema y solución más específicos."}
+            </p>
+            <button
+              type="button"
+              className={styles.retry}
+              onClick={() => navigate("/buscar", { replace: true })}
+            >
+              Intentar de nuevo
+            </button>
+          </div>
+        </section>
+      </Shell>
+    );
+  }
 
   return (
     <Shell>

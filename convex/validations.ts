@@ -60,6 +60,7 @@ export const saveResults = internalMutation({
   args: {
     validationId: v.id("validations"),
     gap: v.string(),
+    verdict: v.string(),
     players: v.array(
       v.object({
         name: v.string(),
@@ -69,8 +70,8 @@ export const saveResults = internalMutation({
       }),
     ),
   },
-  handler: async (ctx, { validationId, gap, players }) => {
-    await ctx.db.patch(validationId, { status: "done", gap });
+  handler: async (ctx, { validationId, gap, verdict, players }) => {
+    await ctx.db.patch(validationId, { status: "done", gap, verdict });
     for (const player of players) {
       await ctx.db.insert("players", { validationId, ...player });
     }
@@ -78,9 +79,9 @@ export const saveResults = internalMutation({
 });
 
 export const markError = internalMutation({
-  args: { validationId: v.id("validations") },
-  handler: async (ctx, { validationId }) => {
-    await ctx.db.patch(validationId, { status: "error" });
+  args: { validationId: v.id("validations"), message: v.string() },
+  handler: async (ctx, { validationId, message }) => {
+    await ctx.db.patch(validationId, { status: "error", errorMessage: message });
   },
 });
 

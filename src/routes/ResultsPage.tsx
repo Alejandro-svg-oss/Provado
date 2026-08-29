@@ -63,11 +63,11 @@ export function ResultsPage() {
     );
   }
 
-  const { problem, solution, gap, players } = validation;
+  const { problem, solution, gap, verdict, players } = validation;
   const confirmedCount = players.filter((p) => p.confidence === "confirmado").length;
   const probableCount = players.length - confirmedCount;
 
-  const summaryForVoice = `${players.length} players encontrados. ${confirmedCount} confirmados, ${probableCount} probables. Hueco: ${gap ?? ""}`;
+  const summaryForVoice = `${verdict ?? ""} ${players.length} players encontrados. ${confirmedCount} confirmados, ${probableCount} probables. Hueco: ${gap ?? ""}`;
 
   return (
     <Shell>
@@ -87,6 +87,22 @@ export function ResultsPage() {
           </div>
         </div>
 
+        {verdict && (
+          <div className={styles.verdict}>
+            <p className={styles.verdictText}>{verdict}</p>
+            <p className={`${styles.verdictNote} mono`}>
+              Fuente verificada de la web, no generada por IA
+            </p>
+          </div>
+        )}
+
+        {gap && (
+          <div className={styles.gap}>
+            <p className={styles.gapLabel}>Hueco concreto</p>
+            <p className={`${styles.gapText} mono`}>{gap}</p>
+          </div>
+        )}
+
         {players.length === 0 ? (
           <p className={styles.solution}>
             No encontramos players para esta búsqueda todavía.
@@ -96,13 +112,6 @@ export function ResultsPage() {
             {players.map((player) => (
               <PlayerCard key={player._id} player={player} />
             ))}
-          </div>
-        )}
-
-        {gap && (
-          <div className={styles.gap}>
-            <p className={styles.gapLabel}>Hueco concreto</p>
-            <p className={`${styles.gapText} mono`}>{gap}</p>
           </div>
         )}
 

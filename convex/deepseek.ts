@@ -15,13 +15,49 @@ type ExtractedPlayer = {
 };
 
 type ExtractionResult = {
+  verdict: string;
   players: ExtractedPlayer[];
   gap: string;
 };
 
 const DEEPSEEK_ENDPOINT = "https://api.deepseek.com/chat/completions";
 
-function buildPrompt(problem: string, solution: string, candidates: ApifyPlayer[]): string {
+// System prompt del motor de evaluación de Provado. Tono "con beef": crítico
+// con filo, pero cada golpe tiene que estar anclado a una fuente real que
+// Apify ya encontró — nunca un insulto sin recibo.
+const SYSTEM_PROMPT = `Eres el motor de evaluación de Provado. Recibes una idea de negocio (problema + solución) y una lista de CANDIDATOS que un scraper ya encontró en la web. Cada candidato trae un título, un fragmento y una URL real.
+
+Tu trabajo: extraer 3-5 players que ya atacan ese problema, definir UN hueco concreto que la idea todavía podría ocupar, y emitir un veredicto de una línea con criterio propio.
+
+REGLAS DURAS (inviolables):
+1. NUNCA inventes ni alteres una URL. Solo puedes usar URLs que aparezcan literalmente en los candidatos. Si cambias un solo carácter de una URL, fallaste.
+2. Un player es "confirmado" SOLO si lo respalda una URL real de los candidatos. Si no tiene fuente en los candidatos, es "probable" y su sourceUrl es null.
+3. No rellenes para llegar a 5. Si solo hay 2 players con fuente real, entrega 2. La honestidad sobre la cantidad es parte del producto.
+4. El "dónde funciona" de cada player debe salir del fragmento del candidato, no de tu conocimiento general. Si el fragmento no lo dice, márcalo como probable.
+
+EL CASO "NO EXISTE" ES UNA VICTORIA, NO UN ERROR:
+Si los candidatos no muestran players reales que ataquen exactamente este problema, NO lo trates como fallo. Es el mejor resultado posible: significa que la idea ocupa un espacio poco atendido. Dilo con claridad y confianza — ese hueco es el activo.
+
+TONO: crítico con filo, pero SIEMPRE con recibos. Cada golpe va anclado a una fuente real de los candidatos — insulto con evidencia, nunca insulto a secas. Prohibido pegarle a la idea sin una URL que respalde el golpe.
+
+El beef se APAGA cuando la idea sobrevive. Si de verdad no hay players con fuente atacando esto, no insultes: reconócelo con respeto ("ok, esto no lo está cubriendo nadie con fuente — aquí sí tienes de dónde agarrarte"). El contraste es lo que hace que el filo tenga peso cuando llega.
+
+Forma del veredicto con beef (ancla siempre a fuente):
+"Esto ya lo hacen [N] empresas y [Player] lo hace mejor que como lo planteas ([fuente]). Tu versión no trae con qué diferenciarse — pero nadie está atacando [hueco], y ahí sí hay algo. Pívota."
+
+Nunca inventes una debilidad. Si no puedes respaldar el golpe con un candidato real, no lo des.
+
+SALIDA:
+Devuelve SOLO este JSON, sin markdown, sin texto extra:
+{
+  "verdict": "string, una línea",
+  "players": [
+    { "name": "string", "whereItWorks": "string, una línea", "sourceUrl": "string o null", "confidence": "confirmado" | "probable" }
+  ],
+  "gap": "string, el hueco concreto que la idea podría ocupar"
+}`;
+
+function buildUserMessage(problem: string, solution: string, candidates: ApifyPlayer[]): string {
   const sourcesList = candidates
     .map((c, i) => {
       const source = c.sourceUrl ? c.sourceUrl : "SIN_FUENTE";
@@ -29,27 +65,11 @@ function buildPrompt(problem: string, solution: string, candidates: ApifyPlayer[
     })
     .join("\n");
 
-  return `Eres un analista que valida ideas de negocio contra evidencia real. Recibiste resultados crudos de una búsqueda web (Apify) sobre este problema/solución:
-
-Problema: ${problem}
+  return `Problema: ${problem}
 Solución propuesta: ${solution}
 
 Candidatos encontrados en la búsqueda (cada uno con su fuente real o SIN_FUENTE si no tiene una):
-${sourcesList || "(ninguno)"}
-
-Tu tarea:
-1. Selecciona entre 3 y 5 players reales que ya atacan este problema, basándote SOLO en los candidatos de arriba. No inventes players que no estén en la lista.
-2. Para cada player, escribe una línea concreta de dónde funciona (mercado, segmento o región), basada en su resumen.
-3. Usa EXACTAMENTE la misma fuente (sourceUrl) que tiene el candidato en la lista. Si el candidato no tiene fuente (SIN_FUENTE), el player debe quedar como "probable" y sourceUrl debe ser null. Nunca inventes ni modifiques una URL.
-4. Escribe un "hueco concreto": una oración sobre qué no está resuelto por ninguno de estos players, que el usuario podría ocupar.
-
-Responde ÚNICAMENTE con JSON válido en este formato exacto, sin texto adicional:
-{
-  "players": [
-    { "name": "...", "whereItWorks": "...", "sourceUrl": "https://..." o null, "confidence": "confirmado" o "probable" }
-  ],
-  "gap": "..."
-}`;
+${sourcesList || "(ninguno)"}`;
 }
 
 function extractJson(text: string): string {
@@ -58,8 +78,10 @@ function extractJson(text: string): string {
   return text.trim();
 }
 
-// Nunca confiar en una sourceUrl que DeepSeek "recuerde" mal: solo se acepta
-// si coincide exactamente con una fuente que Apify realmente encontró.
+// Segunda línea de defensa contra URLs alucinadas: no confiar solo en el
+// prompt. Cada sourceUrl que DeepSeek devuelve se valida contra la lista
+// real de candidatos que Apify encontró; si no coincide exactamente, se
+// descarta y el player pasa a "probable".
 function sanitizeAgainstCandidates(
   result: ExtractionResult,
   candidates: ApifyPlayer[],
@@ -78,7 +100,7 @@ function sanitizeAgainstCandidates(
     })
     .slice(0, 5);
 
-  return { players, gap: result.gap };
+  return { verdict: result.verdict, players, gap: result.gap };
 }
 
 export async function extractPlayersWithDeepSeek(
@@ -100,12 +122,10 @@ export async function extractPlayersWithDeepSeek(
     body: JSON.stringify({
       model: "deepseek-chat",
       messages: [
-        {
-          role: "user",
-          content: buildPrompt(problem, solution, candidates),
-        },
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: buildUserMessage(problem, solution, candidates) },
       ],
-      temperature: 0.2,
+      temperature: 0.4,
     }),
   });
 
@@ -123,6 +143,14 @@ export async function extractPlayersWithDeepSeek(
     throw new Error("DeepSeek returned an empty response.");
   }
 
-  const parsed = JSON.parse(extractJson(content)) as ExtractionResult;
+  let parsed: ExtractionResult;
+  try {
+    parsed = JSON.parse(extractJson(content)) as ExtractionResult;
+  } catch {
+    throw new Error(
+      "DeepSeek devolvió una respuesta que no se pudo interpretar. Intenta de nuevo con un problema/solución más específicos.",
+    );
+  }
+
   return sanitizeAgainstCandidates(parsed, candidates);
 }
