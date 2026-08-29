@@ -32,6 +32,12 @@ Retorna:
   - `sourceUrl`
   - `confidence` (`confirmado` o `probable`)
 
+## Nota adicional
+
+Para una integracion separada de **solo transcripcion de voz** con Vapi, ver:
+
+- `CLAUDE_VAPI_TRANSCRIPCION.md`
+
 ## Objetivo del output
 
 Extraer de `organicResults`:
