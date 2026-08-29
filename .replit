@@ -5,6 +5,3 @@ entrypoint = "src/main.tsx"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "preview"]
 deploymentTarget = "cloudrun"
-
-[env]
-PORT = "8080"
