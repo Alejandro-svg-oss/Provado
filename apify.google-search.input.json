@@ -1,0 +1,41 @@
+{
+  "queries": "",
+  "maxPagesPerQuery": 1,
+  "mobileResults": false,
+  "languageCode": "",
+  "searchLanguage": "",
+  "forceExactMatch": false,
+  "focusOnPaidAds": false,
+  "includeIcons": false,
+  "includeUnfilteredResults": false,
+  "saveHtml": false,
+  "saveHtmlToKeyValueStore": false,
+  "aiOverview": {
+    "scrapeFullAiOverview": false
+  },
+  "aiModeSearch": {
+    "enableAiMode": false
+  },
+  "perplexitySearch": {
+    "enablePerplexity": false,
+    "returnImages": false,
+    "returnRelatedQuestions": false
+  },
+  "chatGptSearch": {
+    "enableChatGpt": false
+  },
+  "geminiSearch": {
+    "enableGemini": false
+  },
+  "copilotSearch": {
+    "enableCopilot": false
+  },
+  "websiteContentScraper": {
+    "enable": false
+  },
+  "maximumLeadsEnrichmentRecords": 0,
+  "verifyLeadsEnrichmentEmails": false,
+  "wordsInTitle": [],
+  "wordsInText": [],
+  "wordsInUrl": []
+}
