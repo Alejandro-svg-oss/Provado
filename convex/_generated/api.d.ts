@@ -11,6 +11,7 @@
 import type * as apifySearch from "../apifySearch.js";
 import type * as deepseek from "../deepseek.js";
 import type * as evidenceSearch from "../evidenceSearch.js";
+import type * as queryDistillation from "../queryDistillation.js";
 import type * as search from "../search.js";
 import type * as validations from "../validations.js";
 
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   apifySearch: typeof apifySearch;
   deepseek: typeof deepseek;
   evidenceSearch: typeof evidenceSearch;
+  queryDistillation: typeof queryDistillation;
   search: typeof search;
   validations: typeof validations;
 }>;

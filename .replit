@@ -1,0 +1,10 @@
+run = "npm run build && npm run preview"
+entrypoint = "src/main.tsx"
+
+[deployment]
+build = ["npm", "run", "build"]
+run = ["npm", "run", "preview"]
+deploymentTarget = "cloudrun"
+
+[env]
+PORT = "8080"

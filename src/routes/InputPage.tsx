@@ -4,6 +4,7 @@ import { useMutation } from "convex/react";
 import { useUser } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import { Shell } from "../components/Shell";
+import { VoiceDictationButton } from "../components/VoiceDictationButton";
 import styles from "./InputPage.module.css";
 
 export function InputPage() {
@@ -15,8 +16,7 @@ export function InputPage() {
   const createValidation = useMutation(api.validations.create);
   const { isSignedIn, isLoaded } = useUser();
 
-  const canSubmit =
-    isSignedIn === true && problem.trim().length > 0 && solution.trim().length > 0 && !submitting;
+  const canSubmit = isSignedIn === true && problem.trim().length > 0 && !submitting;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -25,7 +25,10 @@ export function InputPage() {
     setSubmitting(true);
     setErrorMessage(null);
     try {
-      const validationId = await createValidation({ problem, solution });
+      const validationId = await createValidation({
+        problem,
+        solution: solution.trim() ? solution : undefined,
+      });
       navigate("/buscando", { state: { validationId } });
     } catch (error) {
       console.error("No se pudo crear la validación:", error);
@@ -41,9 +44,10 @@ export function InputPage() {
           <p className={styles.eyebrow}>Provado</p>
           <h1 className={styles.title}>Valida tu idea contra evidencia real</h1>
           <p className={styles.subtitle}>
-            Describe el problema y tu solución. Buscamos quién ya lo está
-            atacando, citamos la fuente y marcamos qué es evidencia confirmada
-            y qué es una suposición.
+            Describe el problema, y si ya tienes una solución en mente,
+            agrégala. Buscamos quién ya lo está atacando (o quién ya lo
+            resuelve, si aún no tienes solución), citamos la fuente y
+            marcamos qué es evidencia confirmada y qué es una suposición.
           </p>
 
           {isLoaded && !isSignedIn ? (
@@ -62,9 +66,12 @@ export function InputPage() {
           ) : (
             <form className={styles.form} onSubmit={(e) => void handleSubmit(e)}>
               <div className={styles.field}>
-                <label className={styles.label} htmlFor="problem">
-                  Problema
-                </label>
+                <div className={styles.labelRow}>
+                  <label className={styles.label} htmlFor="problem">
+                    Problema
+                  </label>
+                  <VoiceDictationButton label="problema" onDictated={setProblem} />
+                </div>
                 <textarea
                   id="problem"
                   className={styles.textarea}
@@ -77,17 +84,19 @@ export function InputPage() {
               </div>
 
               <div className={styles.field}>
-                <label className={styles.label} htmlFor="solution">
-                  Solución
-                </label>
+                <div className={styles.labelRow}>
+                  <label className={styles.label} htmlFor="solution">
+                    Solución <span className={styles.optional}>(opcional)</span>
+                  </label>
+                  <VoiceDictationButton label="solución" onDictated={setSolution} />
+                </div>
                 <textarea
                   id="solution"
                   className={styles.textarea}
-                  placeholder="¿Cómo lo resuelves?"
+                  placeholder="¿Cómo lo resolverías? Déjalo vacío si aún no lo sabes — buscamos qué ya existe."
                   value={solution}
                   onChange={(event) => setSolution(event.target.value)}
                   rows={3}
-                  required
                 />
               </div>
 

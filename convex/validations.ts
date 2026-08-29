@@ -35,7 +35,7 @@ export const get = query({
 });
 
 export const create = mutation({
-  args: { problem: v.string(), solution: v.string() },
+  args: { problem: v.string(), solution: v.optional(v.string()) },
   handler: async (ctx, { problem, solution }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("No autenticado");
@@ -43,7 +43,7 @@ export const create = mutation({
     const validationId = await ctx.db.insert("validations", {
       userId: identity.subject,
       problem,
-      solution,
+      solution: solution?.trim() ? solution : undefined,
       status: "searching",
       createdAt: Date.now(),
     });
@@ -61,6 +61,11 @@ export const saveResults = internalMutation({
     validationId: v.id("validations"),
     gap: v.string(),
     verdict: v.string(),
+    marketSignalProducts: v.number(),
+    marketSignalContentPieces: v.number(),
+    zeroReason: v.optional(
+      v.union(v.literal("no_real_products"), v.literal("no_candidates")),
+    ),
     players: v.array(
       v.object({
         name: v.string(),
@@ -70,8 +75,26 @@ export const saveResults = internalMutation({
       }),
     ),
   },
-  handler: async (ctx, { validationId, gap, verdict, players }) => {
-    await ctx.db.patch(validationId, { status: "done", gap, verdict });
+  handler: async (
+    ctx,
+    {
+      validationId,
+      gap,
+      verdict,
+      marketSignalProducts,
+      marketSignalContentPieces,
+      zeroReason,
+      players,
+    },
+  ) => {
+    await ctx.db.patch(validationId, {
+      status: "done",
+      gap,
+      verdict,
+      marketSignalProducts,
+      marketSignalContentPieces,
+      zeroReason,
+    });
     for (const player of players) {
       await ctx.db.insert("players", { validationId, ...player });
     }

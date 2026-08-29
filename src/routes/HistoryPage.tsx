@@ -72,7 +72,9 @@ export function HistoryPage() {
                   >
                     <div className={styles.itemMain}>
                       <p className={styles.itemProblem}>{item.problem}</p>
-                      <p className={styles.itemSolution}>{item.solution}</p>
+                      <p className={styles.itemSolution}>
+                        {item.solution ?? "Sin solución propuesta — busca soluciones existentes"}
+                      </p>
                     </div>
                     <span className={`${styles.itemDate} mono`}>
                       {formatRelativeDate(item.createdAt)}

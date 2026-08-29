@@ -29,7 +29,7 @@ No competimos en "buscar competidores" ni en "criticar la idea" — eso ya exist
 - Análisis de presupuesto / free tiers / alternativas gratis.
 - Recomendación de pivote elaborada más allá del "hueco concreto".
 - Múltiples mercados, gráficos, dashboards.
-- Voz (ElevenLabs) y búsqueda semántica sobre historial: quedan como stubs opcionales, no bloquean el core.
+- Búsqueda semántica sobre historial: queda como stub opcional, no bloquea el core. (Dictado de campos por voz sí implementado con Web Speech API nativa — ver `src/hooks/useSpeechDictation.ts`.)
 
 Si algo no está en la lista del SÍ, no se construye. Cinco features a medias pierden contra un flujo perfecto.
 
@@ -98,3 +98,17 @@ Abrir la herramienta **contra sí misma en vivo**: meter "herramienta que valida
 ## Primer objetivo de build
 
 Que el flujo único corra de punta a punta con datos reales: input → action (Apify + DeepSeek) → players con fuentes → etiquetas de confianza → render. Auth y persistencia ya están. Nada de presupuesto/free tiers hasta que el core esté impecable.
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

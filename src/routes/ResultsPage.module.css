@@ -63,9 +63,28 @@
   color: var(--text);
 }
 
+.verdictMeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.marketSignal {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 .verdictNote {
   font-size: 0.72rem;
   letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.listLabel {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 
@@ -98,10 +117,23 @@
   line-height: 1.6;
 }
 
+.noData {
+  background: var(--probable-bg);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.noDataText {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
 .footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--space-4);
   padding-top: var(--space-2);
 }
@@ -122,8 +154,7 @@
 }
 
 @media (max-width: 560px) {
-  .footer {
-    flex-direction: column-reverse;
-    align-items: stretch;
+  .newSearch {
+    width: 100%;
   }
 }

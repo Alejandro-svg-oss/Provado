@@ -4,7 +4,6 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { Shell } from "../components/Shell";
 import { PlayerCard } from "../components/PlayerCard";
-import { VoiceButton } from "../components/VoiceButton";
 import styles from "./ResultsPage.module.css";
 
 export function ResultsPage() {
@@ -27,7 +26,7 @@ export function ResultsPage() {
           <h1 className={styles.title}>No hay una búsqueda para mostrar</h1>
           <p className={styles.solution}>Mete un problema y una solución para empezar.</p>
           <div className={styles.footer}>
-            <button type="button" className={styles.newSearch} onClick={() => navigate("/")}>
+            <button type="button" className={styles.newSearch} onClick={() => navigate("/buscar")}>
               Nueva búsqueda
             </button>
           </div>
@@ -54,7 +53,7 @@ export function ResultsPage() {
           <h1 className={styles.title}>No encontramos esta búsqueda</h1>
           <p className={styles.solution}>Puede que haya sido de otra cuenta o ya no exista.</p>
           <div className={styles.footer}>
-            <button type="button" className={styles.newSearch} onClick={() => navigate("/")}>
+            <button type="button" className={styles.newSearch} onClick={() => navigate("/buscar")}>
               Nueva búsqueda
             </button>
           </div>
@@ -63,11 +62,24 @@ export function ResultsPage() {
     );
   }
 
-  const { problem, solution, gap, verdict, players } = validation;
+  const {
+    problem,
+    solution,
+    gap,
+    verdict,
+    players,
+    marketSignalProducts,
+    marketSignalContentPieces,
+    zeroReason,
+  } = validation;
+  const isSoloProblemMode = !solution;
+  const noDataFound = zeroReason === "no_candidates";
   const confirmedCount = players.filter((p) => p.confidence === "confirmado").length;
   const probableCount = players.length - confirmedCount;
+  const listLabel = isSoloProblemMode ? "Soluciones existentes" : "Players";
 
-  const summaryForVoice = `${verdict ?? ""} ${players.length} players encontrados. ${confirmedCount} confirmados, ${probableCount} probables. Hueco: ${gap ?? ""}`;
+  const hasMarketSignal =
+    typeof marketSignalProducts === "number" && typeof marketSignalContentPieces === "number";
 
   return (
     <Shell>
@@ -75,7 +87,7 @@ export function ResultsPage() {
         <div className={styles.header}>
           <p className={styles.eyebrow}>Resultados</p>
           <h1 className={styles.title}>{problem}</h1>
-          <p className={styles.solution}>{solution}</p>
+          {solution && <p className={styles.solution}>{solution}</p>}
 
           <div className={styles.tally}>
             <span className={styles.tallyItem}>
@@ -87,37 +99,59 @@ export function ResultsPage() {
           </div>
         </div>
 
-        {verdict && (
-          <div className={styles.verdict}>
-            <p className={styles.verdictText}>{verdict}</p>
-            <p className={`${styles.verdictNote} mono`}>
-              Fuente verificada de la web, no generada por IA
+        {noDataFound ? (
+          <div className={styles.noData}>
+            <p className={styles.noDataText}>
+              La búsqueda no devolvió resultados; puede ser un problema muy nuevo o una
+              query demasiado específica. Vale la pena reformular.
             </p>
           </div>
-        )}
-
-        {gap && (
-          <div className={styles.gap}>
-            <p className={styles.gapLabel}>Hueco concreto</p>
-            <p className={`${styles.gapText} mono`}>{gap}</p>
-          </div>
-        )}
-
-        {players.length === 0 ? (
-          <p className={styles.solution}>
-            No encontramos players para esta búsqueda todavía.
-          </p>
         ) : (
-          <div className={styles.list}>
-            {players.map((player) => (
-              <PlayerCard key={player._id} player={player} />
-            ))}
-          </div>
+          <>
+            {verdict && (
+              <div className={styles.verdict}>
+                <p className={styles.verdictText}>{verdict}</p>
+                <div className={styles.verdictMeta}>
+                  {hasMarketSignal && (
+                    <span className={`${styles.marketSignal} mono`}>
+                      {marketSignalProducts} producto{marketSignalProducts === 1 ? "" : "s"} real
+                      {marketSignalProducts === 1 ? "" : "es"} · {marketSignalContentPieces}{" "}
+                      artículo{marketSignalContentPieces === 1 ? "" : "s"} sobre el tema
+                    </span>
+                  )}
+                  <p className={`${styles.verdictNote} mono`}>
+                    Fuente verificada de la web, no generada por IA
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {gap && (
+              <div className={styles.gap}>
+                <p className={styles.gapLabel}>Hueco concreto</p>
+                <p className={`${styles.gapText} mono`}>{gap}</p>
+              </div>
+            )}
+          </>
         )}
+
+        {!noDataFound &&
+          (players.length === 0 ? (
+            <p className={styles.solution}>
+              No encontramos {isSoloProblemMode ? "soluciones" : "players"} para esta búsqueda
+              todavía.
+            </p>
+          ) : (
+            <div className={styles.list}>
+              <p className={styles.listLabel}>{listLabel}</p>
+              {players.map((player) => (
+                <PlayerCard key={player._id} player={player} />
+              ))}
+            </div>
+          ))}
 
         <div className={styles.footer}>
-          <VoiceButton summary={summaryForVoice} />
-          <button type="button" className={styles.newSearch} onClick={() => navigate("/")}>
+          <button type="button" className={styles.newSearch} onClick={() => navigate("/buscar")}>
             Nueva búsqueda
           </button>
         </div>
